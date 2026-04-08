@@ -18,6 +18,10 @@ import { CheckCircle2 } from 'lucide-react'
 
 type Slot = 'morning' | 'evening'
 
+const ACTIVE_ADMIN_UNLOCK_KEY = 'token-booking-active-admin-unlocked'
+// UI-only gate. Change this PIN to whatever you want.
+const ACTIVE_ADMIN_PIN = '1234'
+
 interface SlotConfig {
     name: string
     startHour: number
@@ -69,6 +73,13 @@ export default function TokenBooking() {
     const [eveningTokens, setEveningTokens] = useState<Token[]>([])
     const [activeMorningTokenNumber, setActiveMorningTokenNumber] = useState<number | null>(null)
     const [activeEveningTokenNumber, setActiveEveningTokenNumber] = useState<number | null>(null)
+    const [activeAdminUnlocked, setActiveAdminUnlocked] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem(ACTIVE_ADMIN_UNLOCK_KEY) === 'true'
+        } catch {
+            return false
+        }
+    })
     const [dialogOpen, setDialogOpen] = useState(false)
     const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
     const [patientName, setPatientName] = useState('')
@@ -170,6 +181,30 @@ export default function TokenBooking() {
         }
     }
 
+    const handleUnlockActiveAdmin = () => {
+        const pin = window.prompt('Enter admin PIN to enable "Set Active"')
+        if (!pin) return
+        if (pin === ACTIVE_ADMIN_PIN) {
+            setActiveAdminUnlocked(true)
+            try {
+                localStorage.setItem(ACTIVE_ADMIN_UNLOCK_KEY, 'true')
+            } catch {
+                // ignore
+            }
+        } else {
+            alert('Wrong PIN')
+        }
+    }
+
+    const handleLockActiveAdmin = () => {
+        setActiveAdminUnlocked(false)
+        try {
+            localStorage.removeItem(ACTIVE_ADMIN_UNLOCK_KEY)
+        } catch {
+            // ignore
+        }
+    }
+
     // const handleDownloadPDF = (token: Token) => {
     //     generateTokenPDF({
     //         tokenNumber: token.tokenNumber,
@@ -197,6 +232,18 @@ export default function TokenBooking() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 md:p-0 p-2">
+
+                    <div className="flex items-center justify-end gap-2">
+                        {!activeAdminUnlocked ? (
+                            <Button type="button" variant="outline" size="sm" onClick={handleUnlockActiveAdmin}>
+                                Admin: Enable Set Active
+                            </Button>
+                        ) : (
+                            <Button type="button" variant="outline" size="sm" onClick={handleLockActiveAdmin}>
+                                Admin: Lock
+                            </Button>
+                        )}
+                    </div>
 
 
                     {!isActive && (
@@ -227,23 +274,25 @@ export default function TokenBooking() {
                                             </p>
                                         </div>
 
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={async () => {
-                                                if (slot === 'morning') setActiveMorningTokenNumber(token.tokenNumber)
-                                                else setActiveEveningTokenNumber(token.tokenNumber)
+                                        {activeAdminUnlocked && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={async () => {
+                                                    if (slot === 'morning') setActiveMorningTokenNumber(token.tokenNumber)
+                                                    else setActiveEveningTokenNumber(token.tokenNumber)
 
-                                                const ok = await setActiveTokenForSlot(currentDate, slot, token.tokenNumber)
-                                                if (!ok) {
-                                                    alert('Failed to save active token. Please try again.')
-                                                }
-                                            }}
-                                            className="mt-2 md:mt-0"
-                                        >
-                                            Set Active
-                                        </Button>
+                                                    const ok = await setActiveTokenForSlot(currentDate, slot, token.tokenNumber)
+                                                    if (!ok) {
+                                                        alert('Failed to save active token. Please try again.')
+                                                    }
+                                                }}
+                                                className="mt-2 md:mt-0"
+                                            >
+                                                Set Active
+                                            </Button>
+                                        )}
                                         {/* <Button
                                             variant="outline"
                                             size="sm"
