@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "dr-mohrir"
+  },
+  "targets": {
+    "dr-mohrir": {
+      "hosting": {
+        "token-booking-site": [
+          "token-booking-site"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
